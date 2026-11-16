@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pengaturan — SRIKANDI Naskah AI</title>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --soft: #64748b;
+      --bg: #f8fafc;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --primary: #6366f1; --border: #334155; --text: #e2e8f0; --soft: #94a3b8; --bg: #0f172a; }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 32px 16px;
+    }
+    main { max-width: 640px; margin: 0 auto; }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    .sub { color: var(--soft); margin-bottom: 24px; }
+    fieldset {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      margin: 0 0 20px;
+      background: #fff;
+    }
+    @media (prefers-color-scheme: dark) { fieldset { background: #1e293b; } }
+    legend { font-weight: 700; padding: 0 8px; color: var(--primary); }
+    label { display: block; margin-top: 12px; font-size: 13px; font-weight: 600; }
+    label:first-of-type { margin-top: 4px; }
+    input[type="text"], input[type="password"], select {
+      width: 100%;
+      margin-top: 4px;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font: inherit;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .hint { font-size: 12px; color: var(--soft); margin-top: 4px; }
+    .row { display: flex; gap: 10px; align-items: center; margin-top: 14px; }
+    button {
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      padding: 10px 18px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    button.secondary { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
+    #save-msg { font-size: 13px; font-weight: 600; }
+    #save-msg.ok { color: #16a34a; }
+    #save-msg.err { color: #dc2626; }
+    .provider-body { display: none; }
+    .provider-body.active { display: block; }
+    a { color: var(--primary); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>📄 SRIKANDI Naskah AI — Pengaturan</h1>
+    <p class="sub">Ekstensi ini aktif di <code>srikandi.arsip.go.id</code> saat membuka halaman Registrasi Naskah Keluar.</p>
+
+    <fieldset>
+      <legend>Provider AI</legend>
+      <label for="provider">Pilih provider</label>
+      <select id="provider">
+        <option value="openai">OpenAI-compatible — Kenari (default)</option>
+        <option value="anthropic">Anthropic (Claude)</option>
+      </select>
+
+      <div id="body-anthropic" class="provider-body">
+        <label for="anthropic-key">API key Anthropic</label>
+        <input type="password" id="anthropic-key" placeholder="sk-ant-…" autocomplete="off" />
+        <p class="hint">Buat di <a href="https://platform.claude.com" target="_blank" rel="noopener">platform.claude.com</a> → API Keys. Kunci disimpan hanya di browser ini (chrome.storage.local).</p>
+        <label for="anthropic-model">Model</label>
+        <input type="text" id="anthropic-model" placeholder="claude-opus-5-5" />
+        <label for="anthropic-baseurl">Base URL</label>
+        <input type="text" id="anthropic-baseurl" placeholder="https://api.anthropic.com" />
+      </div>
+
+      <div id="body-openai" class="provider-body">
+        <label for="openai-key">API key</label>
+        <input type="password" id="openai-key" placeholder="kn-…" autocomplete="off" />
+        <label for="openai-baseurl">Base URL</label>
+        <input type="text" id="openai-baseurl" placeholder="https://kenari.id/v1" />
+        <label for="openai-model">Model</label>
+        <input type="text" id="openai-model" placeholder="deepseek-v4-1-flash" />
+        <p class="hint">Default memakai <strong>Kenari</strong> (<code>https://kenari.id/v1</code>, model <code>deepseek-v4-1-flash</code>). Kompatibel dengan endpoint OpenAI chat/completions lain: Ollama (http://localhost:11434/v1), LM Studio, Groq, dsb. Endpoint harus mengizinkan CORS.</p>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Halaman Tujuan</legend>
+      <label for="page-match">Bagian URL path halaman SRIKANDI yang diaktifkan</label>
+      <input type="text" id="page-match" />
+      <p class="hint">Panel tampil bila URL halaman memuat nilai ini (default: <code>registrasi-naskah-keluar</code>).</p>
+    </fieldset>
+
+    <div class="row">
+      <button id="btn-save">Simpan</button>
+      <button id="btn-test" class="secondary">Uji Koneksi AI</button>
+      <span id="save-msg"></span>
+    </div>
+  </main>
+
+  <script src="options.js"></script>
+</body>
+</html>

@@ -1,0 +1,268 @@
+/* SRIKANDI Naskah AI — style panel (di dalam shadow DOM)
+   :root tidak cocok apa pun di dalam shadow tree — variabel CSS harus
+   dideklarasikan di :host agar diwariskan ke elemen shadow. */
+:host {
+  --snai-primary: #4f46e5;
+  --snai-primary-hover: #4338ca;
+  --snai-bg: #ffffff;
+  --snai-bg-soft: #f8fafc;
+  --snai-border: #e2e8f0;
+  --snai-text: #0f172a;
+  --snai-text-soft: #64748b;
+  --snai-error: #dc2626;
+  --snai-ok: #16a34a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :host {
+    --snai-primary: #6366f1;
+    --snai-primary-hover: #818cf8;
+    --snai-bg: #1e293b;
+    --snai-bg-soft: #0f172a;
+    --snai-border: #334155;
+    --snai-text: #e2e8f0;
+    --snai-text-soft: #94a3b8;
+  }
+}
+
+* { box-sizing: border-box; }
+
+/* host berada di light DOM — :host() satu-satunya cara menyembunyikannya */
+:host(.snai-hidden) { display: none !important; }
+.snai-hidden { display: none !important; }
+
+/* ---------- Floating action button (dekat toolbar extension) ---------- */
+.snai-fab {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 2147483000;
+  width: 52px;
+  height: 52px;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4f46e5, #9333ea);
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+  transition: transform 0.15s ease;
+}
+.snai-fab:hover { transform: scale(1.06); }
+
+/* ---------- Panel (buka ke bawah, sejajar tombol extension) ---------- */
+.snai-panel {
+  position: fixed;
+  top: 78px;
+  right: 14px;
+  z-index: 2147483000;
+  width: 380px;
+  max-width: calc(100vw - 28px);
+  max-height: calc(100vh - 100px);
+  display: flex;
+  flex-direction: column;
+  background: var(--snai-bg);
+  color: var(--snai-text);
+  border: 1px solid var(--snai-border);
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.22);
+  font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow: hidden;
+}
+
+.snai-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #fff;
+}
+.snai-title { font-weight: 700; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+.snai-badge {
+  font-size: 10px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 7px;
+  border-radius: 99px;
+  letter-spacing: 0.4px;
+}
+.snai-header-actions { display: flex; gap: 4px; }
+.snai-btn-ghost {
+  background: rgba(255, 255, 255, 0.14);
+  border: none;
+  color: #fff;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.snai-btn-ghost:hover { background: rgba(255, 255, 255, 0.28); }
+
+.snai-body { padding: 14px; overflow-y: auto; }
+
+/* ---------- Dropzone ---------- */
+.snai-dropzone {
+  border: 2px dashed #a5b4fc;
+  border-radius: 12px;
+  padding: 20px 14px;
+  text-align: center;
+  cursor: pointer;
+  background: var(--snai-bg-soft);
+  transition: border-color 0.15s, background 0.15s;
+}
+.snai-dropzone.snai-drop-active { border-color: var(--snai-primary); background: rgba(99, 102, 241, 0.08); }
+.snai-drop-ico { font-size: 26px; margin-bottom: 6px; }
+.snai-drop-text { font-weight: 600; color: var(--snai-text); }
+.snai-drop-sub { font-size: 11px; color: var(--snai-text-soft); margin-top: 2px; }
+.snai-drop-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--snai-primary);
+  font-weight: 600;
+  text-decoration: underline;
+  font-size: 12px;
+}
+.snai-fileinput { display: none; }
+
+/* ---------- File chips ---------- */
+.snai-files { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.snai-files:empty { display: none; }
+.snai-file-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--snai-bg-soft);
+  border: 1px solid var(--snai-border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.snai-file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.snai-file-x {
+  border: none;
+  background: transparent;
+  color: var(--snai-text-soft);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0 4px;
+  border-radius: 4px;
+}
+.snai-file-x:hover { color: var(--snai-error); background: rgba(220, 38, 38, 0.1); }
+
+/* ---------- Status ---------- */
+.snai-status { margin-top: 10px; font-size: 12px; min-height: 16px; color: var(--snai-text-soft); }
+.snai-status-busy { color: var(--snai-primary); font-weight: 600; }
+.snai-status-ok { color: var(--snai-ok); font-weight: 600; }
+.snai-status-error { color: var(--snai-error); font-weight: 600; }
+.snai-error {
+  margin-top: 8px;
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.3);
+  color: var(--snai-error);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+/* ---------- Result ---------- */
+.snai-result { margin-top: 12px; }
+.snai-result-title { font-weight: 700; font-size: 12px; color: var(--snai-text); margin-bottom: 8px; }
+.snai-fields { display: flex; flex-direction: column; gap: 8px; }
+.snai-field { display: flex; flex-direction: column; gap: 3px; }
+.snai-field-label { font-size: 11px; font-weight: 600; color: var(--snai-text-soft); letter-spacing: 0.2px; }
+.snai-field-input {
+  width: 100%;
+  border: 1px solid var(--snai-border);
+  border-radius: 8px;
+  padding: 7px 9px;
+  font-size: 12.5px;
+  background: var(--snai-bg-soft);
+  color: var(--snai-text);
+  font-family: inherit;
+  resize: vertical;
+}
+.snai-field-input:focus { outline: 2px solid var(--snai-primary); outline-offset: -1px; }
+
+/* ---------- Info rows (field tanpa tempat di form) ---------- */
+.snai-result-info {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px dashed var(--snai-border);
+  border-radius: 8px;
+  background: var(--snai-bg-soft);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.snai-info-row { font-size: 11.5px; display: flex; gap: 6px; }
+.snai-info-label { font-weight: 600; color: var(--snai-text-soft); min-width: 110px; }
+.snai-info-value { color: var(--snai-text); word-break: break-word; }
+
+.snai-extras-wrap { margin-top: 10px; font-size: 12px; }
+.snai-extras-wrap summary { cursor: pointer; color: var(--snai-primary); font-weight: 600; }
+.snai-extras {
+  background: var(--snai-bg-soft);
+  border: 1px solid var(--snai-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 11px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 6px 0 0;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+/* ---------- Footer ---------- */
+.snai-footer {
+  display: flex;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--snai-border);
+  background: var(--snai-bg-soft);
+}
+.snai-btn {
+  flex: 1;
+  border: none;
+  border-radius: 9px;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, opacity 0.15s;
+}
+.snai-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.snai-btn-primary { background: var(--snai-primary); color: #fff; }
+.snai-btn-primary:hover:not(:disabled) { background: var(--snai-primary-hover); }
+.snai-btn-secondary { background: transparent; color: var(--snai-primary); border: 1px solid var(--snai-primary); }
+.snai-btn-secondary:hover:not(:disabled) { background: rgba(99, 102, 241, 0.1); }
+
+/* ---------- Toast ---------- */
+.snai-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translate(-50%, 16px);
+  background: #0f172a;
+  color: #f8fafc;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  max-width: min(520px, 90vw);
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.35s, transform 0.35s;
+  pointer-events: none;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.35);
+}
+.snai-toast-in { opacity: 1; transform: translate(-50%, 0); }

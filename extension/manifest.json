@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "name": "SRIKANDI Naskah AI",
+  "version": "0.3.1",
+  "description": "Analisis naskah (PDF/DOCX/TXT) dengan AI dan isi otomatis form Registrasi Naskah Keluar di SRIKANDI.",
+  "minimum_chrome_version": "110",
+  "permissions": ["storage", "activeTab"],
+  "web_accessible_resources": [
+    {
+      "resources": ["content/content.css", "lib/pdf.worker.min.js"],
+      "matches": ["https://srikandi.arsip.go.id/*"]
+    }
+  ],
+  "host_permissions": [
+    "https://srikandi.arsip.go.id/*",
+    "https://kenari.id/*",
+    "https://api.anthropic.com/*",
+    "https://api.openai.com/*"
+  ],
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://srikandi.arsip.go.id/*"],
+      "js": [
+        "lib/pdf.min.js",
+        "lib/mammoth.browser.min.js",
+        "content/formfill.js",
+        "content/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "SRIKANDI Naskah AI",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
