@@ -1,0 +1,114 @@
+{
+  "success": true,
+  "message": "List Jenis Naskah",
+  "result": {
+    "data": [
+      {
+        "id": 16958,
+        "organisasi_id": 278568,
+        "public_organisasi_id": 278315,
+        "jenis_naskah": "NOTA DINAS",
+        "created_at": "2022-02-28T14:16:33.000000Z",
+        "updated_at": "2022-02-28T14:16:33.000000Z",
+        "status": "AKTIF",
+        "is_centralized": "N"
+      },
+      {
+        "id": 16959,
+        "organisasi_id": 278554,
+        "public_organisasi_id": 278315,
+        "jenis_naskah": "SURAT BIASA",
+        "created_at": "2022-03-09T06:13:22.000000Z",
+        "updated_at": "2022-03-09T06:13:22.000000Z",
+        "status": "AKTIF",
+        "is_centralized": "N"
+      },
+      {
+        "id": 16960,
+        "organisasi_id": 278315,
+        "public_organisasi_id": 278315,
+        "jenis_naskah": "NOTA PENGAJUAN KONSEP NASKAH DINAS",
+        "created_at": "2022-11-10T05:10:45.000000Z",
+        "updated_at": "2022-11-10T05:10:45.000000Z",
+        "status": "AKTIF",
+        "is_centralized": "N"
+      },
+      {
+        "id": 16961,
+        "organisasi_id": 278568,
+        "public_organisasi_id": 278315,
+        "jenis_naskah": "BERITA ACARA SERAH TERIMA",
+        "created_at": "2022-11-11T02:58:40.000000Z",
+        "updated_at": "2022-11-11T02:58:40.000000Z",
+        "status": "AKTIF",
+        "is_centralized": "N"
+      },
+      {
+        "id": 17355,
+        "organisasi_id": 278315,
+        "public_organisasi_id": 278315,
+        "jenis_naskah": "SURAT KEPUTUSAN",
+        "created_at": "2023-08-25T04:28:57.000000Z",
+        "updated_at": "2023-08-25T04:28:57.000000Z",
+        "status": "AKTIF",
+        "is_centralized": "N"
+      },
+      {
+        "id": 24187,
+        "organisasi_id": 278554,
+        "public_organisasi_id": 278315,
+        "jenis_naskah": "SURAT PENGANTAR",
+        "created_at": "2024-01-04T04:20:40.000000Z",
+        "updated_at": "2024-01-04T04:20:40.000000Z",
+        "status": "AKTIF",
+        "is_centralized": "N"
+      },
+      {
+        "id": 24188,
+        "organisasi_id": 278554,
+        "public_organisasi_id": 278315,
+        "jenis_naskah": "SURAT EDARAN",
+        "created_at": "2024-01-04T04:20:52.000000Z",
+        "updated_at": "2024-01-04T04:23:23.000000Z",
+        "status": "AKTIF",
+        "is_centralized": "N"
+      },
+      {
+        "id": 24189,
+        "organisasi_id": 278554,
+        "public_organisasi_id": 278315,
+        "jenis_naskah": "SURAT PERINTAH TUGAS",
+        "created_at": "2024-01-04T04:21:30.000000Z",
+        "updated_at": "2024-01-04T04:21:30.000000Z",
+        "status": "AKTIF",
+        "is_centralized": "N"
+      },
+      {
+        "id": 24192,
+        "organisasi_id": 278554,
+        "public_organisasi_id": 278315,
+        "jenis_naskah": "SURAT KETERANGAN",
+        "created_at": "2024-01-04T04:22:08.000000Z",
+        "updated_at": "2024-01-04T04:22:08.000000Z",
+        "status": "AKTIF",
+        "is_centralized": "N"
+      },
+      {
+        "id": 30937,
+        "organisasi_id": 278568,
+        "public_organisasi_id": 278315,
+        "jenis_naskah": "SURAT PERNYATAAN",
+        "created_at": "2025-01-14T03:15:04.000000Z",
+        "updated_at": "2025-01-14T03:15:04.000000Z",
+        "status": "AKTIF",
+        "is_centralized": "N"
+      }
+    ],
+    "path": "http:\/\/10.120.1.163:32112\/api\/tatanaskah\/jenis-naskah\/select",
+    "per_page": 15,
+    "next_cursor": null,
+    "next_page_url": null,
+    "prev_cursor": null,
+    "prev_page_url": null
+  }
+}

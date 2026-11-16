@@ -26,6 +26,81 @@
 
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+  /* ---------------- referensi opsi (dari data/*.json) ----------------
+   * Field Sifat Naskah & Jenis Naskah di SRIKANDI adalah MUI Autocomplete
+   * yang opsinya diambil dari API saat diketik (debounce). Nilai AI harus
+   * dinormalisasi dulu ke label persis dari referensi organisasi.
+   */
+  let REF = null; // { prioritas: [label...], jenis_naskah: [label...] }
+
+  async function loadRef() {
+    if (REF) return REF;
+    REF = { prioritas: [], jenis_naskah: [], klasifikasi: [] };
+    const jobs = [
+      ["data/sifat_naskah.json", "prioritas", "sifat_naskah"],
+      ["data/jenis_naskah.json", "jenis_naskah", "jenis_naskah"],
+    ];
+    await Promise.all(
+      [
+        ...jobs.map(async ([file, key, prop]) => {
+          try {
+            const res = await fetch(chrome.runtime.getURL(file));
+            if (!res.ok) return;
+            const body = await res.json();
+            REF[key] = (body?.result?.data || [])
+              .filter((d) => d.status === "AKTIF")
+              .map((d) => String(d[prop] || "").trim())
+              .filter(Boolean);
+          } catch {}
+        }),
+        // klasifikasi.json: array {k,n} (build script) atau JSON API ({kode,kode_nama})
+        async () => {
+          try {
+            const res = await fetch(
+              chrome.runtime.getURL("data/klasifikasi.json"),
+            );
+            if (!res.ok) return;
+            const body = await res.json();
+            if (Array.isArray(body)) {
+              REF.klasifikasi = body
+                .map((e) => String(e.k || "").trim())
+                .filter(Boolean);
+            } else {
+              REF.klasifikasi = (body?.result?.data || [])
+                .filter((d) => !d.status || d.status === "AKTIF")
+                .map((d) => String(d.kode || "").trim())
+                .filter(Boolean);
+            }
+          } catch {}
+        },
+      ].map((fn) => fn()),
+    );
+    return REF;
+  }
+
+  /**
+   * Normalisasi nilai AI ke label PERSIS dari referensi.
+   * Pencocokan longgar (persis → berawalan → mengandung, abaikan
+   * kapital/aksen) — hasilnya SELALU salah satu opsi referensi.
+   * Bila tidak ada opsi yang cocok → null (jangan dipaksakan).
+   */
+  function matchRef(refLabels, value) {
+    if (!refLabels || !refLabels.length) return null;
+    const target = norm(value);
+    if (!target) return null;
+    const exact = refLabels.find((l) => norm(l) === target);
+    if (exact) return exact;
+    const starts = refLabels.find(
+      (l) => norm(l).startsWith(target) || target.startsWith(norm(l)),
+    );
+    if (starts) return starts;
+    const contains = refLabels.find(
+      (l) => norm(l).includes(target) || target.includes(norm(l)),
+    );
+    if (contains) return contains;
+    return null;
+  }
+
   /** Key yang TIDAK dicoba diisi di form ini (hanya ditampilkan sebagai info). */
   const SKIP_KEYS = ["tanggal_naskah"]; // form registrasi tidak punya field tanggal
 
@@ -33,7 +108,15 @@
   function isFillable(el) {
     if (!el || el.disabled || el.readOnly) return false;
     const t = el.type;
-    if (t === "hidden" || t === "file" || t === "submit" || t === "button" || t === "reset" || t === "image") return false;
+    if (
+      t === "hidden" ||
+      t === "file" ||
+      t === "submit" ||
+      t === "button" ||
+      t === "reset" ||
+      t === "image"
+    )
+      return false;
     const style = window.getComputedStyle(el);
     if (style.display === "none" || style.visibility === "hidden") return false;
     const rect = el.getBoundingClientRect();
@@ -56,13 +139,17 @@
     const aria = el.getAttribute("aria-label");
     if (aria && aria.trim()) return aria.trim();
     const wrapLabel = el.closest("label");
-    if (wrapLabel && wrapLabel.textContent.trim()) return wrapLabel.textContent.trim();
+    if (wrapLabel && wrapLabel.textContent.trim())
+      return wrapLabel.textContent.trim();
 
     // th scope="row" / cell di depan pada tabel form
     const row = el.closest("tr");
     if (row) {
-      const th = row.querySelector("th[scope='row'], th, .label, [class*='label']");
-      if (th && th.textContent.trim()) return th.textContent.trim().slice(0, 120);
+      const th = row.querySelector(
+        "th[scope='row'], th, .label, [class*='label']",
+      );
+      if (th && th.textContent.trim())
+        return th.textContent.trim().slice(0, 120);
     }
 
     // Komponen custom (react-select / MUI): label umumnya <label> sibling
@@ -78,7 +165,8 @@
       const container = node.closest(".MuiGrid-root, .form-group, fieldset");
       if (container) {
         const lab = container.querySelector("label");
-        if (lab && lab.textContent.trim()) return lab.textContent.trim().slice(0, 120);
+        if (lab && lab.textContent.trim())
+          return lab.textContent.trim().slice(0, 120);
       }
     }
 
@@ -115,7 +203,14 @@
         el,
         label,
         reactSelect: rs,
-        type: el.tagName === "SELECT" ? "select" : el.tagName === "TEXTAREA" ? "textarea" : rs ? "select" : el.type || "text",
+        type:
+          el.tagName === "SELECT"
+            ? "select"
+            : el.tagName === "TEXTAREA"
+              ? "textarea"
+              : rs
+                ? "select"
+                : el.type || "text",
       };
       if (entry.type === "select" && !rs) {
         entry.options = Array.from(el.options)
@@ -129,11 +224,19 @@
     }
 
     // checkbox / radio (dipisah karena logika isi-nya berbeda)
-    for (const el of document.querySelectorAll("input[type='checkbox'], input[type='radio']")) {
+    for (const el of document.querySelectorAll(
+      "input[type='checkbox'], input[type='radio']",
+    )) {
       if (!isFillable(el)) continue;
       const label = labelFor(el);
       if (!label) continue;
-      fields.push({ el, label, type: el.type, checked: el.checked, reactSelect: false });
+      fields.push({
+        el,
+        label,
+        type: el.type,
+        checked: el.checked,
+        reactSelect: false,
+      });
     }
 
     return fields;
@@ -141,7 +244,10 @@
 
   /** Set nilai input/textarea kompatibel dengan React (native setter + event). */
   function setNativeValue(el, value) {
-    const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    const proto =
+      el instanceof HTMLTextAreaElement
+        ? HTMLTextAreaElement.prototype
+        : HTMLInputElement.prototype;
     const desc = Object.getOwnPropertyDescriptor(proto, "value");
     if (desc && typeof desc.set === "function") {
       desc.set.call(el, value);
@@ -180,62 +286,173 @@
   /** Klik opsi react-select (responsif terhadap mousedown). */
   function clickOption(opt) {
     for (const type of ["mousedown", "mouseup", "click"]) {
-      opt.dispatchEvent(new MouseEvent(type, { bubbles: true, cancelable: true, view: window }));
+      opt.dispatchEvent(
+        new MouseEvent(type, { bubbles: true, cancelable: true, view: window }),
+      );
     }
     return true;
   }
 
   /**
-   * Isi dropdown react-select dengan mengetik nilai (filter) lalu memilih opsi.
+   * Isi dropdown react-select / MUI Autocomplete dengan mengetik nilai
+   * (memfilter / memicu fetch opsi via API dengan debounce) lalu memilih opsi.
+   * Nilai AI dinormalisasi dulu ke label persis dari referensi
+   * (sifat_naskah.json / jenis_naskah.json) untuk field terkait.
    * @returns {Promise<boolean>} true bila opsi terpilih.
    */
   async function fillReactSelect(input, value) {
+    // Normalisasi nilai ke label PERSIS referensi (field sifat/jenis/klasifikasi)
+    try {
+      const ref = await loadRef();
+      const label =
+        norm(input.getAttribute("aria-label") || "") || norm(labelFor(input));
+      if (/klasifikasi|\bgradasi\b/.test(label)) {
+        // klasifikasi arsip: nilai = "<kode> <nama>" → ketik hanya kolom "kode"
+        // (pencarian API form me-response ke kode, bukan nama panjang)
+        const kode = value.trim().split(/\s+/)[0];
+        if (ref.klasifikasi.length && !ref.klasifikasi.includes(kode)) {
+          console.warn(
+            `[SRIKANDI Naskah AI] kode klasifikasi "${kode}" tidak ada di referensi (${ref.klasifikasi.length} entri) — tetap dicoba di form`,
+          );
+        }
+        value = kode;
+      } else if (/\bsifat\b/.test(label)) {
+        // Strict HANYA bila referensi termuat — bila tidak, isi apa adanya
+        if (ref.prioritas.length) {
+          const mapped = matchRef(ref.prioritas, value);
+          if (!mapped) {
+            console.info(
+              `[SRIKANDI Naskah AI] "${value}" tidak ada di daftar sifat naskah — dilewati`,
+            );
+            return false;
+          }
+          value = mapped; // sifat: harus persis opsi
+        }
+      } else if (/\bjenis\b/.test(label)) {
+        if (ref.jenis_naskah.length) {
+          // Nilai tanpa opsi cocok (mis. "Undangan", "Surat Undangan") →
+          // default ke "SURAT BIASA" sesuai preferensi pengguna.
+          value =
+            matchRef(ref.jenis_naskah, value) ||
+            ref.jenis_naskah.find((l) => norm(l) === "surat biasa") ||
+            value;
+        }
+      }
+    } catch {}
     const target = norm(value);
     if (!target) return false;
 
-    // 1) Ketik nilai → memfilter opsi pada select yang bisa dicari
+    const labelAll =
+      norm(input.getAttribute("aria-label") || "") || norm(labelFor(input));
+    // Klasifikasi: TIDAK memilih opsi. Cukup ketik kode untuk memicu
+    // fetching opsi dari API form, tunggu beberapa detik, lalu biarkan
+    // user memilih item yang sesuai secara manual.
+    const isKlasifikasi = /klasifikasi|\bgradasi\b/.test(labelAll);
+    if (isKlasifikasi) {
+      setNativeValue(input, "");
+      input.focus();
+      setNativeValue(input, target);
+      // JANGAN blur — biarkan input tetap fokus agar dropdown opsi tetap
+      // terbuka sampai user memilih sendiri.
+      try {
+        console.info(
+          `[SRIKANDI Naskah AI] klasifikasi: kode "${target}" dimasukkan — silakan pilih opsi yang sesuai secara manual`,
+        );
+      } catch {}
+      return true;
+    }
+
+    const preWait = 0;
+    const pollFirst = 2500;
+
+    // Polling listbox: opsi bisa dimuat via API (debounce) setelah diketik,
+    // jadi tunggu hingga opsi cocok muncul — bukan sekadar listbox muncul.
+    async function pollMatch(timeout) {
+      const deadline = Date.now() + timeout;
+      while (Date.now() < deadline) {
+        const boxes = Array.from(document.querySelectorAll('[role="listbox"]'));
+        const visible = boxes.filter((b) => {
+          const st = window.getComputedStyle(b);
+          return st.display !== "none" && st.visibility !== "hidden";
+        });
+        for (const box of visible.reverse()) {
+          const opt = pickOption(box, target);
+          if (opt) return opt;
+        }
+        await sleep(120);
+      }
+      return null;
+    }
+
+    // 1) Ketik nilai → memfilter / memicu fetch opsi (debounce API)
     setNativeValue(input, "");
     input.focus();
     setNativeValue(input, value);
+    if (preWait) await sleep(preWait);
 
-    let listbox = await waitForListbox(1200);
-    if (listbox) {
-      const opt = pickOption(listbox, target);
-      if (opt) return clickOption(opt);
-      setNativeValue(input, "");
-    }
+    let opt = await pollMatch(pollFirst);
+    if (opt) return clickOption(opt);
 
-    // 2) Rescue: sebagian versi react-select hanya membuka menu via keydown.
-    //    Nilai tetap diketik (filter state masih aktif) + ArrowDown.
-    setNativeValue(input, value);
-    input.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", code: "ArrowDown", keyCode: 40, which: 40, bubbles: true }));
-    listbox = await waitForListbox(1500);
-    if (listbox) {
-      const opt = pickOption(listbox, target);
-      if (opt) return clickOption(opt);
-    }
-
-    // 3) Rescue terakhir: kosongkan nilai, buka menu dengan mousedown di control
+    // 2) Reset debounce: ketik ulang dari kosong + ArrowDown (sebagian
+    //    implementasi hanya membuka menu via keyboard)
     setNativeValue(input, "");
+    await sleep(250 + preWait);
+    setNativeValue(input, value);
+    if (preWait) await sleep(preWait);
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "ArrowDown",
+        code: "ArrowDown",
+        keyCode: 40,
+        which: 40,
+        bubbles: true,
+      }),
+    );
+    opt = await pollMatch(pollFirst);
+    if (opt) return clickOption(opt);
+
+    // 3) Reset debounce lagi lalu buka menu tanpa filter (semua opsi) —
+    //    cocok untuk autocomplete async yang hanya fetch saat dirty
+    setNativeValue(input, "");
+    await sleep(400);
     const control =
       input.closest('[class*="-control"]') ||
+      input.closest(".MuiAutocomplete-root") ||
       input.parentElement;
     if (control) {
-      control.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, view: window }));
-      listbox = await waitForListbox(1500);
-      if (listbox) {
-        const opt = pickOption(listbox, target);
-        if (opt) return clickOption(opt);
-      }
+      control.dispatchEvent(
+        new MouseEvent("mousedown", {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+        }),
+      );
+      input.focus();
+      opt = await pollMatch(2000);
+      if (opt) return clickOption(opt);
     }
 
     // 4) Gagal: bersihkan input & tutup menu; log opsi yang terlihat untuk diagnostik
     setNativeValue(input, "");
-    input.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true }));
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Escape",
+        code: "Escape",
+        bubbles: true,
+      }),
+    );
     try {
       const boxes = Array.from(document.querySelectorAll('[role="listbox"]'));
-      const opts = boxes.flatMap((b) => Array.from(b.querySelectorAll('[role="option"]')).map((o) => o.textContent.trim())).slice(0, 30);
-      console.info(`[SRIKANDI Naskah AI] dropdown "${input.id}" tidak cocok untuk "${value}" — opsi terlihat: ${opts.length ? JSON.stringify(opts) : "(menu tertutup)"}`);
+      const opts = boxes
+        .flatMap((b) =>
+          Array.from(b.querySelectorAll('[role="option"]')).map((o) =>
+            o.textContent.trim(),
+          ),
+        )
+        .slice(0, 30);
+      console.info(
+        `[SRIKANDI Naskah AI] dropdown "${input.id}" tidak cocok untuk "${value}" — opsi terlihat: ${opts.length ? JSON.stringify(opts) : "(menu tertutup)"}`,
+      );
     } catch {}
     return false;
   }
@@ -299,7 +516,11 @@
 
   const KEY_PATTERNS = {
     nomor_naskah: [/^nomor\b/, /\bnomor (naskah|surat|dokumen)\b/, /\bnomor\b/],
-    tanggal_naskah: [/^tanggal\b/, /\btanggal (naskah|surat|dokumen)\b/, /\btanggal\b/],
+    tanggal_naskah: [
+      /^tanggal\b/,
+      /\btanggal (naskah|surat|dokumen)\b/,
+      /\btanggal\b/,
+    ],
     pokok_surat: [/\b(pokok|perihal|perkara|hal)\b/], // form SRIKANDI memakai label "Hal"
     jenis_naskah: [/\bjenis\b/],
     gradasi: [/\b(gradasi|kerahasiaan|tingkat rahasia|rahasia|klasifikasi)\b/], // label "Klasifikasi"
@@ -324,30 +545,41 @@
     try {
       console.info(
         `[SRIKANDI Naskah AI] applyFields: ${fields.length} field terdeteksi —`,
-        fields.map((f) => `"${f.label}" (${f.type}${f.reactSelect ? ",react-select" : ""})`).join(" | ")
+        fields
+          .map(
+            (f) =>
+              `"${f.label}" (${f.type}${f.reactSelect ? ",react-select" : ""})`,
+          )
+          .join(" | "),
       );
     } catch {}
 
-    const keysWithValues = Object.entries(fieldsResult || {}).filter(([, v]) => {
-      if (v === null || v === undefined) return false;
-      if (typeof v === "string" && !v.trim()) return false;
-      if (Array.isArray(v) && v.length === 0) return false;
-      return true;
-    });
+    const keysWithValues = Object.entries(fieldsResult || {}).filter(
+      ([, v]) => {
+        if (v === null || v === undefined) return false;
+        if (typeof v === "string" && !v.trim()) return false;
+        if (Array.isArray(v) && v.length === 0) return false;
+        return true;
+      },
+    );
 
     // urutan prioritas pengisian (field scalars dulu, lalu lampiran/tujuan)
+    // klasifikasi (gradasi) PALING AKHIR: hanya mengetik kode untuk memicu
+    // fetching opsi — pemilihan item final dilakukan manual oleh user.
     const order = [
       "tanggal_naskah", // dilaporkan skipped (tidak ada field tanggal di form)
-      "nomor_naskah",
       "nomor_referensi",
       "pokok_surat",
       "jenis_naskah",
-      "gradasi",
       "prioritas",
       "jumlah_lampiran",
       "ringkasan",
+      "gradasi",
+      "nomor_naskah", // paling akhir: SETELAH klasifikasi terisi
     ];
-    const orderedKeys = order.filter((k) => keysWithValues.some(([k2]) => k2 === k));
+    const orderedKeys = order.filter((k) =>
+      keysWithValues.some(([k2]) => k2 === k),
+    );
 
     for (const key of orderedKeys) {
       if (SKIP_KEYS.includes(key)) {
@@ -355,7 +587,9 @@
         continue;
       }
       const value = fieldsResult[key];
-      const patterns = KEY_PATTERNS[key] || [new RegExp(key.replace(/_/g, "\\b"))];
+      const patterns = KEY_PATTERNS[key] || [
+        new RegExp(key.replace(/_/g, "\\b")),
+      ];
       let target = null;
       for (const field of fields) {
         if (used.has(field.el)) continue;
@@ -367,61 +601,69 @@
         }
       }
       if (!target) {
-        result.notFound.push({ key, value: typeof value === "object" ? JSON.stringify(value) : value });
+        result.notFound.push({
+          key,
+          value: typeof value === "object" ? JSON.stringify(value) : value,
+        });
         continue;
       }
       const ok = await setFieldValue(target, value);
       if (ok) {
         used.add(target.el);
-        result.filled.push({ key, fieldLabel: target.label, value: String(value).slice(0, 200) });
+        result.filled.push({
+          key,
+          fieldLabel: target.label,
+          value: String(value).slice(0, 200),
+        });
       } else {
-        result.failed.push({ key, fieldLabel: target.label, value: String(value) });
+        result.failed.push({
+          key,
+          fieldLabel: target.label,
+          value: String(value),
+        });
       }
     }
 
     // Lampiran: cari input berteks "nama lampiran" (bila ada di form lain)
     const lampiran = fieldsResult.lampiran;
-    if (Array.isArray(lampiran) && lampiran.length && typeof lampiran[0] === "object") {
+    if (
+      Array.isArray(lampiran) &&
+      lampiran.length &&
+      typeof lampiran[0] === "object"
+    ) {
       const first = lampiran[0] || {};
       const value = first.nama || first.name || "";
       if (value) {
         const target = fields.find(
-          (f) => !used.has(f.el) && f.type !== "checkbox" && f.type !== "radio" && norm(f.label).includes("nama lampiran")
+          (f) =>
+            !used.has(f.el) &&
+            f.type !== "checkbox" &&
+            f.type !== "radio" &&
+            norm(f.label).includes("nama lampiran"),
         );
         if (target) {
           if (await setFieldValue(target, value)) {
             used.add(target.el);
-            result.filled.push({ key: "lampiran", fieldLabel: target.label, value });
+            result.filled.push({
+              key: "lampiran",
+              fieldLabel: target.label,
+              value,
+            });
           } else {
-            result.failed.push({ key: "lampiran", fieldLabel: target.label, value });
+            result.failed.push({
+              key: "lampiran",
+              fieldLabel: target.label,
+              value,
+            });
           }
         }
         // Lampiran di form SRIKANDI = slot file (ditangani setFiles oleh content.js)
       }
     }
 
-    // Tujuan: isi field "tujuan utama" (react-select di form SRIKANDI)
-    const tujuan = fieldsResult.tujuan;
-    if (Array.isArray(tujuan) && tujuan.length && typeof tujuan[0] === "object") {
-      const t = tujuan[0] || {};
-      const instansiValue = t.instansi || t.nama || "";
-      if (instansiValue) {
-        const patterns = [/\b(instansi|tujuan utama|utama)\b/];
-        const target = fields.find(
-          (f) => !used.has(f.el) && f.type !== "checkbox" && f.type !== "radio" && patterns.some((re) => re.test(norm(f.label)))
-        );
-        if (target) {
-          if (await setFieldValue(target, instansiValue)) {
-            used.add(target.el);
-            result.filled.push({ key: "tujuan", fieldLabel: target.label, value: instansiValue });
-          } else {
-            result.failed.push({ key: "tujuan", fieldLabel: target.label, value: instansiValue });
-          }
-        } else {
-          result.notFound.push({ key: "tujuan", value: instansiValue });
-        }
-      }
-    }
+    // Tujuan naskah TIDAK diisi otomatis — opsi react-select-nya kompleks
+    // (instansi/penerima) sehingga lebih aman dipilih manual oleh user.
+    // Detil tujuan tetap tampil di panel sebagai informasi.
 
     return result;
   }

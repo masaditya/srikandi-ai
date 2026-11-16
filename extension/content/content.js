@@ -46,7 +46,10 @@
     const node = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs)) {
       if (k === "class") node.className = v;
-      else if (k.startsWith("on") && typeof v === "function") node.addEventListener(k.slice(2), v);
+      else if (k === "value" && "value" in node)
+        node.value = v; // textarea mengabaikan atribut value → wajib properti
+      else if (k.startsWith("on") && typeof v === "function")
+        node.addEventListener(k.slice(2), v);
       else if (v !== null && v !== undefined) node.setAttribute(k, v);
     }
     for (const c of children) {
@@ -58,8 +61,16 @@
 
   function setStatus(text, kind = "info") {
     if (!R.status) return;
-    R.status.replaceChildren(text);
+    R.status.replaceChildren();
+    if (kind === "busy") {
+      // loading state animasi: spinner + teks berjalan + progress bar
+      R.status.append(el("span", { class: "snai-spinner" }));
+      R.status.append(el("span", { class: "snai-dots" }, text));
+    } else {
+      R.status.append(text);
+    }
     R.status.className = `snai-status snai-status-${kind}`;
+    if (R.progress) R.progress.classList.toggle("snai-hidden", kind !== "busy");
   }
 
   function setState(state) {
@@ -92,7 +103,10 @@
 
   async function extractPdf(file) {
     const buf = await file.arrayBuffer();
-    const pdf = await window.pdfjsLib.getDocument({ data: buf, isEvalSupported: false }).promise;
+    const pdf = await window.pdfjsLib.getDocument({
+      data: buf,
+      isEvalSupported: false,
+    }).promise;
     try {
       let out = "";
       for (let p = 1; p <= pdf.numPages; p++) {
@@ -122,10 +136,15 @@
 
   async function extractFile(file) {
     const name = file.name.toLowerCase();
-    if (name.endsWith(".pdf")) return { text: await extractPdf(file), kind: "pdf" };
-    if (name.endsWith(".docx")) return { text: await extractDocx(file), kind: "docx" };
-    if (/\.(txt|md|csv)$/.test(name)) return { text: await file.text(), kind: "text" };
-    throw new Error(`Format "${file.name}" belum didukung. Gunakan PDF, DOCX, atau TXT.`);
+    if (name.endsWith(".pdf"))
+      return { text: await extractPdf(file), kind: "pdf" };
+    if (name.endsWith(".docx"))
+      return { text: await extractDocx(file), kind: "docx" };
+    if (/\.(txt|md|csv)$/.test(name))
+      return { text: await file.text(), kind: "text" };
+    throw new Error(
+      `Format "${file.name}" belum didukung. Gunakan PDF, DOCX, atau TXT.`,
+    );
   }
 
   /* ------------------------------- UI ------------------------------- */
@@ -139,22 +158,47 @@
 
     R.fab = el(
       "button",
-      { class: "snai-fab", title: "Naskah AI — analisis & isi form otomatis", onclick: () => setPanelOpen(true) },
-      "📄"
+      {
+        class: "snai-fab",
+        title: "Naskah AI — analisis & isi form otomatis",
+        onclick: () => setPanelOpen(true),
+      },
+      "📄",
     );
 
     R.panel = el("div", { class: "snai-panel" });
 
     // header
-    const gear = el("button", { class: "snai-btn-ghost", title: "Pengaturan (API key, dsb.)", onclick: openOptions }, "⚙️");
-    const close = el("button", { class: "snai-btn-ghost", title: "Tutup panel", onclick: () => setPanelOpen(false) }, "×");
+    const gear = el(
+      "button",
+      {
+        class: "snai-btn-ghost",
+        title: "Pengaturan (API key, dsb.)",
+        onclick: openOptions,
+      },
+      "⚙️",
+    );
+    const close = el(
+      "button",
+      {
+        class: "snai-btn-ghost",
+        title: "Tutup panel",
+        onclick: () => setPanelOpen(false),
+      },
+      "×",
+    );
     R.panel.append(
       el(
         "div",
         { class: "snai-header" },
-        el("div", { class: "snai-title" }, "📄 Naskah AI", el("span", { class: "snai-badge" }, "SRIKANDI")),
-        el("div", { class: "snai-header-actions" }, gear, close)
-      )
+        el(
+          "div",
+          { class: "snai-title" },
+          "📄 Naskah AI",
+          el("span", { class: "snai-badge" }, "SRIKANDI"),
+        ),
+        el("div", { class: "snai-header-actions" }, gear, close),
+      ),
     );
 
     const body = el("div", { class: "snai-body" });
@@ -164,34 +208,66 @@
       "div",
       { class: "snai-dropzone" },
       el("div", { class: "snai-drop-ico" }, "⬆️"),
-      el("div", { class: "snai-drop-text" }, "Tarik & lepas naskah di sini", el("div", { class: "snai-drop-sub" }, "PDF, DOCX, TXT — file pertama = naskah, sisanya = lampiran")),
-      el("span", { class: "snai-drop-link", role: "button", tabindex: "0" }, "atau pilih file")
+      el(
+        "div",
+        { class: "snai-drop-text" },
+        "Tarik & lepas naskah di sini",
+        el(
+          "div",
+          { class: "snai-drop-sub" },
+          "PDF, DOCX, TXT — file pertama = naskah, sisanya = lampiran",
+        ),
+      ),
+      el(
+        "span",
+        { class: "snai-drop-link", role: "button", tabindex: "0" },
+        "atau pilih file",
+      ),
     );
-    R.fileInput = el("input", { type: "file", accept: ".pdf,.docx,.txt,.md", multiple: "multiple", class: "snai-fileinput" });
+    R.fileInput = el("input", {
+      type: "file",
+      accept: ".pdf,.docx,.txt,.md",
+      multiple: "multiple",
+      class: "snai-fileinput",
+    });
     body.append(R.drop, R.fileInput);
 
     R.files = el("div", { class: "snai-files" });
     R.status = el("div", { class: "snai-status snai-status-idle" }, "");
+    R.progress = el("div", { class: "snai-progress snai-hidden" });
     R.result = el("div", { class: "snai-result snai-hidden" });
     R.error = el("div", { class: "snai-error snai-hidden" });
-    body.append(R.files, R.status, R.result, R.error);
+    body.append(R.files, R.status, R.progress, R.result, R.error);
     R.panel.append(body);
 
     // footer
-    R.btnRetry = el("button", { class: "snai-btn snai-btn-secondary" }, "Analisis Ulang");
-    R.btnApply = el("button", { class: "snai-btn snai-btn-primary", disabled: "disabled" }, "Isi Form Otomatis");
+    R.btnRetry = el(
+      "button",
+      { class: "snai-btn snai-btn-secondary" },
+      "Analisis Ulang",
+    );
+    R.btnApply = el(
+      "button",
+      { class: "snai-btn snai-btn-primary", disabled: "disabled" },
+      "Isi Form Otomatis",
+    );
     R.panel.append(el("div", { class: "snai-footer" }, R.btnRetry, R.btnApply));
 
     R.drop.addEventListener("click", (e) => {
-      if (e.target === R.drop || e.target.closest(".snai-drop-link")) R.fileInput.click();
+      if (e.target === R.drop || e.target.closest(".snai-drop-link"))
+        R.fileInput.click();
     });
     ["dragenter", "dragover"].forEach((ev) =>
       R.drop.addEventListener(ev, (e) => {
         e.preventDefault();
         R.drop.classList.add("snai-drop-active");
-      })
+      }),
     );
-    ["dragleave", "dragend"].forEach((ev) => R.drop.addEventListener(ev, () => R.drop.classList.remove("snai-drop-active")));
+    ["dragleave", "dragend"].forEach((ev) =>
+      R.drop.addEventListener(ev, () =>
+        R.drop.classList.remove("snai-drop-active"),
+      ),
+    );
     R.drop.addEventListener("drop", (e) => {
       e.preventDefault();
       R.drop.classList.remove("snai-drop-active");
@@ -216,7 +292,7 @@
       styleEl.textContent = await res.text();
     } catch {
       styleEl.textContent =
-        ':host{--snai-bg:#fff;--snai-text:#0f172a;--snai-border:#e2e8f0;--snai-primary:#4f46e5}:host(.snai-hidden){display:none}.snai-hidden{display:none}.snai-fab{position:fixed;top:14px;right:14px;width:52px;height:52px;border:none;border-radius:50%;background:#4f46e5;color:#fff;font-size:22px;cursor:pointer;z-index:2147483000}.snai-panel{position:fixed;top:78px;right:14px;width:380px;max-width:calc(100vw - 28px);max-height:calc(100vh - 100px);background:var(--snai-bg);border:1px solid var(--snai-border);border-radius:14px;box-shadow:0 8px 30px rgba(15,23,42,.18);font:13px/1.5 system-ui;z-index:2147483000;padding:14px;color:var(--snai-text)}';
+        ":host{--snai-bg:#fff;--snai-text:#0f172a;--snai-border:#e2e8f0;--snai-primary:#4f46e5}:host(.snai-hidden){display:none}.snai-hidden{display:none}.snai-fab{position:fixed;top:14px;right:14px;width:52px;height:52px;border:none;border-radius:50%;background:#4f46e5;color:#fff;font-size:22px;cursor:pointer;z-index:2147483000}.snai-panel{position:fixed;top:78px;right:14px;width:380px;max-width:calc(100vw - 28px);max-height:calc(100vh - 100px);background:var(--snai-bg);border:1px solid var(--snai-border);border-radius:14px;box-shadow:0 8px 30px rgba(15,23,42,.18);font:13px/1.5 system-ui;z-index:2147483000;padding:14px;color:var(--snai-text)}";
     }
   }
 
@@ -234,21 +310,25 @@
         "div",
         { class: "snai-file-chip" },
         el("span", { class: "snai-file-name" }, f.name),
-        el("button", {
-          class: "snai-file-x",
-          title: "Hapus file",
-          onclick: () => {
-            S.files.splice(i, 1);
-            if (!S.files.length) {
-              S.fields = null;
-              R.result.classList.add("snai-hidden");
-              setState("idle");
-              setStatus("");
-            }
-            renderFiles();
-            if (S.files.length) analyze();
+        el(
+          "button",
+          {
+            class: "snai-file-x",
+            title: "Hapus file",
+            onclick: () => {
+              S.files.splice(i, 1);
+              if (!S.files.length) {
+                S.fields = null;
+                R.result.classList.add("snai-hidden");
+                setState("idle");
+                setStatus("");
+              }
+              renderFiles();
+              if (S.files.length) analyze();
+            },
           },
-        }, "×")
+          "×",
+        ),
       );
       R.files.append(chip);
     }
@@ -256,7 +336,13 @@
 
   function renderResult() {
     R.result.replaceChildren();
-    R.result.append(el("div", { class: "snai-result-title" }, "Hasil analisis — perbaiki bila perlu, kosongkan bila ingin dilewati"));
+    R.result.append(
+      el(
+        "div",
+        { class: "snai-result-title" },
+        "Hasil analisis — perbaiki bila perlu, kosongkan bila ingin dilewati",
+      ),
+    );
     const grid = el("div", { class: "snai-fields" });
     for (const def of FIELD_DEFS) {
       const input = el(def.area ? "textarea" : "input", {
@@ -266,29 +352,150 @@
       });
       if (def.hint) input.placeholder = def.hint;
       input.dataset.snaiKey = def.key;
-      grid.append(el("label", { class: "snai-field" }, el("span", { class: "snai-field-label" }, def.label), input));
+      grid.append(
+        el(
+          "label",
+          { class: "snai-field" },
+          el("span", { class: "snai-field-label" }, def.label),
+          input,
+        ),
+      );
     }
     R.result.append(grid);
 
     // Info: field yang tidak punya tempat di form registrasi (hanya ditampilkan)
-    const infoRows = [
-      ["Tanggal Naskah", S.fields?.tanggal_naskah],
-      ["Jumlah Lampiran", S.fields?.jumlah_lampiran],
-    ].filter(([, v]) => v !== null && v !== undefined && v !== "");
+    const infoRows = [["Tanggal Naskah", S.fields?.tanggal_naskah]].filter(
+      ([, v]) => v !== null && v !== undefined && v !== "",
+    );
     if (infoRows.length) {
       const info = el("div", { class: "snai-result-info" });
       for (const [label, v] of infoRows) {
-        info.append(el("div", { class: "snai-info-row" }, el("span", { class: "snai-info-label" }, label + " "), el("span", { class: "snai-info-value" }, String(v))));
+        info.append(
+          el(
+            "div",
+            { class: "snai-info-row" },
+            el("span", { class: "snai-info-label" }, label + " "),
+            el("span", { class: "snai-info-value" }, String(v)),
+          ),
+        );
       }
       R.result.append(info);
     }
 
-    const extras = [];
-    if (Array.isArray(S.fields?.lampiran) && S.fields.lampiran.length) extras.push(["Lampiran (detil)", S.fields.lampiran]);
-    if (Array.isArray(S.fields?.tujuan) && S.fields.tujuan.length) extras.push(["Tujuan Surat (detil)", S.fields.tujuan]);
-    for (const [title, data] of extras) {
-      const pre = el("pre", { class: "snai-extras" }, JSON.stringify(data, null, 2));
-      R.result.append(el("details", { class: "snai-extras-wrap" }, el("summary", {}, title), pre));
+    /* ------- autocomplete dari daftar referensi (data/*.json):
+       Klasifikasi (kode+nama), Jenis Naskah & Sifat Naskah (label) ------- */
+
+    async function setupRefAutocomplete(input, source) {
+      let list = null;
+      try {
+        const res = await fetch(chrome.runtime.getURL(source.file));
+        if (res.ok) list = await res.json();
+      } catch {}
+      if (source.pick) list = source.pick(list) || [];
+      if (!list || !list.length) return;
+      if (source.placeholder) {
+        input.placeholder = input.placeholder || source.placeholder;
+      }
+
+      // Snap nilai awal: nilai AI yang tidak cocok dengan daftar direkonsiliasi —
+      // jenis naskah tanpa opsi cocok (mis. "Undangan") → default "SURAT BIASA";
+      // sifat naskah tanpa opsi cocok → dikosongkan (dipilih manual).
+      const cur = (input.value || "").trim();
+      if (source.strict && cur) {
+        const norm2 = (s) => s.toLowerCase().replace(/\s+/g, " ").trim();
+        const hit = list.find((l) => norm2(l) === norm2(cur));
+        const loose =
+          !hit &&
+          list.find(
+            (l) =>
+              norm2(l).includes(norm2(cur)) || norm2(cur).includes(norm2(l)),
+          );
+        if (hit || loose) input.value = hit || loose;
+        else if (source.defaultLabel) input.value = source.defaultLabel;
+        else input.value = "";
+      }
+
+      const pop = el("div", { class: "snai-klas-pop snai-hidden" });
+      input.closest("label")?.append(pop);
+
+      const hide = () => pop.classList.add("snai-hidden");
+
+      const showMatches = () => {
+        const q = input.value.trim().toLowerCase();
+        const matches = (list || [])
+          .map((it) => (typeof it === "string" ? it : null))
+          .filter((label) => {
+            if (!label) return false;
+            if (!q) return true; // kosong → tampilkan beberapa opsi pertama
+            const l = label.toLowerCase();
+            return l.includes(q);
+          })
+          .slice(0, 15);
+        if (!matches.length) return hide();
+        pop.replaceChildren();
+        for (const label of matches) {
+          const item = el("div", { class: "snai-klas-item" }, label);
+          item.addEventListener("mousedown", (e) => {
+            e.preventDefault(); // jangan blur dulu
+            input.value = label;
+            input.dispatchEvent(new Event("input", { bubbles: true }));
+            hide();
+          });
+          pop.append(item);
+        }
+        pop.classList.remove("snai-hidden");
+      };
+
+      input.addEventListener("input", showMatches);
+      input.addEventListener("focus", showMatches);
+      input.addEventListener("blur", () => setTimeout(hide, 150));
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") hide();
+      });
+    }
+
+    const REF_SOURCES = {
+      gradasi: {
+        file: "data/klasifikasi.json",
+        pick: (raw) => {
+          // Format array ({k,n}) hasil build script ATAU format JSON API
+          // ({ result: { data: [{ kode, nama, kode_nama }] } }) langsung.
+          if (Array.isArray(raw)) return raw.map((e) => `${e.k} ${e.n}`);
+          const rows = raw?.result?.data || [];
+          return rows
+            .filter((d) => !d.status || d.status === "AKTIF")
+            .map((d) => String(d.kode_nama || `${d.kode} - ${d.nama}`).trim())
+            .filter(Boolean);
+        },
+        placeholder: "kode + nama (mis. 000.5.2.6 Bimbingan …)",
+        strict: false,
+      },
+      jenis_naskah: {
+        file: "data/jenis_naskah.json",
+        pick: (raw) =>
+          (raw?.result?.data || [])
+            .filter((d) => d.status === "AKTIF")
+            .map((d) => String(d.jenis_naskah || "").trim()),
+        placeholder: "pilih jenis (mis. SURAT BIASA)",
+        strict: true,
+        defaultLabel: "SURAT BIASA",
+      },
+      prioritas: {
+        file: "data/sifat_naskah.json",
+        pick: (raw) =>
+          (raw?.result?.data || [])
+            .filter((d) => d.status === "AKTIF")
+            .map((d) => String(d.sifat_naskah || "").trim()),
+        placeholder: "pilih sifat (mis. Biasa / Umum)",
+        strict: true,
+      },
+    };
+    for (const def of FIELD_DEFS) {
+      const src = REF_SOURCES[def.key];
+      if (src) {
+        const input = R.result.querySelector(`[data-snai-key="${def.key}"]`);
+        if (input) setupRefAutocomplete(input, src);
+      }
     }
 
     if (R.btnApply) R.btnApply.disabled = false;
@@ -315,10 +522,16 @@
     if (S.state === "extracting" || S.state === "analyzing") return;
     setState("extracting");
     for (const [i, file] of files.entries()) {
-      setStatus(`Mengekstrak teks: ${file.name} (${i + 1}/${files.length})…`, "busy");
+      setStatus(
+        `Mengekstrak teks: ${file.name} (${i + 1}/${files.length})…`,
+        "busy",
+      );
       try {
         const { text, kind } = await extractFile(file);
-        if (!text || text.trim().length < 3) throw new Error(`Tidak ada teks yang terbaca dari "${file.name}" (PDF hasil scan perlu OCR).`);
+        if (!text || text.trim().length < 3)
+          throw new Error(
+            `Tidak ada teks yang terbaca dari "${file.name}" (PDF hasil scan perlu OCR).`,
+          );
         S.files.push({ name: file.name, text: truncate(text), kind, file });
         renderFiles();
       } catch (err) {
@@ -337,7 +550,10 @@
     R.result.classList.add("snai-hidden");
     R.error.classList.add("snai-hidden");
     setStatus("Menganalisis dengan AI…", "busy");
-    const total = S.files.map((f) => `=== FILE: ${f.name} ===\n${f.text}`).join("\n\n").slice(0, MAX_TOTAL_CHARS);
+    const total = S.files
+      .map((f) => `=== FILE: ${f.name} ===\n${f.text}`)
+      .join("\n\n")
+      .slice(0, MAX_TOTAL_CHARS);
 
     // Konteks form: field yang tersedia + opsi select-nya
     let formContext = [];
@@ -351,9 +567,15 @@
         .map((f) => ({ label: f.label, type: f.type, options: f.options }));
     } catch {}
 
-    console.info(`[SRIKANDI Naskah AI] analyze: ${S.files.length} file, ${formContext.length} field form sebagai konteks`);
-    const resp = await chrome.runtime.sendMessage({ type: "srikandi:analyze", text: total, formContext });
-    console.info("[SRIKANDI Naskah AI] hasil AI:", resp?.ok ? resp.fields : resp);
+    console.info(
+      `[SRIKANDI Naskah AI] analyze: ${S.files.length} file, ${formContext.length} field form sebagai konteks`,
+    );
+    const resp = await chrome.runtime.sendMessage({
+      type: "srikandi:analyze",
+      text: total,
+      formContext,
+    });
+    console.info("[SRIKANDI Naskah AI] analisis selesai", resp?.ok ? "" : resp);
     if (!resp || !resp.ok) {
       setState("error");
       setStatus("Analisis gagal.", "error");
@@ -362,13 +584,16 @@
     }
     S.fields = resp.fields;
     setState("ready");
-    const nonEmpty = Object.values(S.fields).filter((v) => v !== null && v !== "" && (!Array.isArray(v) || v.length)).length;
-    setStatus(`Selesai (${resp.model}). ${nonEmpty} field terdeteksi — mengisi form otomatis…`, "busy");
+    const nonEmpty = Object.values(S.fields).filter(
+      (v) => v !== null && v !== "" && (!Array.isArray(v) || v.length),
+    ).length;
+    setStatus(
+      `Selesai (${resp.model}). ${nonEmpty} field terdeteksi — klik "Isi Form Otomatis" untuk mengisi form.`,
+      "ok",
+    );
     renderResult();
     R.result.classList.remove("snai-hidden");
-    // Pengisian otomatis setelah analisis (tombol tetap ada untuk pengulangan
-    // setelah mengedit nilai di panel).
-    setTimeout(() => applyToForm(), 400);
+    // Pengisian form TIDAK otomatis; harus di-trigger lewat tombol "Isi Form Otomatis".
   }
 
   let applying = false;
@@ -395,16 +620,28 @@
         const inputs = window.SNAI.formfill.collectFileInputs();
         const naskahFile = S.files[0]?.file;
         let naskahAttached = false;
-        if (naskahFile && inputs.naskah && window.SNAI.formfill.setFiles(inputs.naskah, [naskahFile])) {
+        if (
+          naskahFile &&
+          inputs.naskah &&
+          window.SNAI.formfill.setFiles(inputs.naskah, [naskahFile])
+        ) {
           naskahAttached = true;
           fileNotes.push(`file naskah: ${naskahFile.name}`);
         } else if (S.files[0]) {
           fileNotes.push("file naskah tidak bisa dilampirkan");
         }
-        const lampFiles = S.files.slice(1).map((f) => f.file).filter(Boolean);
+        const lampFiles = S.files
+          .slice(1)
+          .map((f) => f.file)
+          .filter(Boolean);
         if (lampFiles.length) {
-          if (inputs.lampiran && window.SNAI.formfill.setFiles(inputs.lampiran, lampFiles)) {
-            fileNotes.push(`lampiran: ${lampFiles.map((f) => f.name).join(", ")}`);
+          if (
+            inputs.lampiran &&
+            window.SNAI.formfill.setFiles(inputs.lampiran, lampFiles)
+          ) {
+            fileNotes.push(
+              `lampiran: ${lampFiles.map((f) => f.name).join(", ")}`,
+            );
           } else {
             fileNotes.push("lampiran tidak bisa dilampirkan");
           }
@@ -418,18 +655,33 @@
         if (res.filled.length) parts.push(`${res.filled.length} field terisi`);
         if (fileNotes.length) parts.push(fileNotes.join(" • "));
         const unmet = res.notFound.length + res.failed.length;
-        toast(
-          `✔ ${parts.join(" | ")}${unmet ? ` — ${unmet} field tidak cocok di halaman` : ""}. Periksa lalu simpan form.`
+        const gradasiTyped = res.filled.some((f) => f.key === "gradasi");
+        const msg = `✔ ${parts.join(" | ")}${unmet ? ` — ${unmet} field tidak cocok di halaman` : ""}. Periksa lalu simpan form.`;
+        if (gradasiTyped) {
+          // Klasifikasi hanya diketik (opsi harus dipilih manual oleh user) —
+          // tunda toast agar dropdown opsi tidak terganggu dan tetap terbuka.
+          toast2(msg);
+        } else {
+          toast(msg);
+        }
+        setStatus(
+          gradasiTyped
+            ? `Form diisi: ${res.filled.map((f) => f.key).join(", ") || "file"} — pilih opsi Klasifikasi secara manual`
+            : `Form diisi: ${res.filled.map((f) => f.key).join(", ") || "file"}`,
+          "ok",
         );
-        setStatus(`Form diisi: ${res.filled.map((f) => f.key).join(", ") || "file"}`, "ok");
       } else {
-        toast("Tidak ada field yang terisi — tidak ada kecocokan label. Perbaiki nilai lalu ulangi.");
+        toast(
+          "Tidak ada field yang terisi — tidak ada kecocokan label. Perbaiki nilai lalu ulangi.",
+        );
         setStatus("Tidak ada field yang cocok di halaman ini.", "error");
       }
       const detail = [...res.notFound, ...res.failed];
       if (detail.length) {
         console.info("[SRIKANDI Naskah AI] field tidak terisi:", detail);
-        toast2(`Tidak cocok di halaman: ${detail.map((d) => d.key).join(", ")}`);
+        toast2(
+          `Tidak cocok di halaman: ${detail.map((d) => d.key).join(", ")}`,
+        );
       }
     } catch (err) {
       console.error("[SRIKANDI Naskah AI] apply gagal:", err);
@@ -475,12 +727,16 @@
 
   function pdfjsWorkerSetup() {
     try {
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL("lib/pdf.worker.min.js");
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL(
+        "lib/pdf.worker.min.js",
+      );
     } catch {}
   }
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => init().catch(console.error));
+    document.addEventListener("DOMContentLoaded", () =>
+      init().catch(console.error),
+    );
   } else {
     init().catch((e) => console.error("[SRIKANDI Naskah AI] init gagal:", e));
   }

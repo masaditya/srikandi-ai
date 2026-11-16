@@ -1,13 +1,19 @@
 {
   "manifest_version": 3,
   "name": "SRIKANDI Naskah AI",
-  "version": "0.3.1",
+  "version": "0.5.2",
   "description": "Analisis naskah (PDF/DOCX/TXT) dengan AI dan isi otomatis form Registrasi Naskah Keluar di SRIKANDI.",
   "minimum_chrome_version": "110",
   "permissions": ["storage", "activeTab"],
   "web_accessible_resources": [
     {
-      "resources": ["content/content.css", "lib/pdf.worker.min.js"],
+      "resources": [
+        "content/content.css",
+        "lib/pdf.worker.min.js",
+        "data/klasifikasi.json",
+        "data/sifat_naskah.json",
+        "data/jenis_naskah.json"
+      ],
       "matches": ["https://srikandi.arsip.go.id/*"]
     }
   ],
@@ -25,6 +31,7 @@
       "matches": ["https://srikandi.arsip.go.id/*"],
       "js": [
         "lib/pdf.min.js",
+        "lib/pdf.worker.min.js",
         "lib/mammoth.browser.min.js",
         "content/formfill.js",
         "content/content.js"

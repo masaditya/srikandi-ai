@@ -22,7 +22,8 @@ const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 function matchPart(el, part) {
   part = part.trim();
   if (!part) return false;
-  if (part.startsWith(".")) return (el.className || "").split(/\s+/).includes(part.slice(1));
+  if (part.startsWith("."))
+    return (el.className || "").split(/\s+/).includes(part.slice(1));
   let m = part.match(/^([a-zA-Z*]+):not\(\[([a-zA-Z-]+)\]\)$/);
   if (m) {
     const tag = m[1].toUpperCase();
@@ -67,7 +68,10 @@ class FakeEl {
     this._parent = null;
     this._prev = null;
     if (tag === "select") {
-      this.options = (attrs.options || []).map((t) => ({ value: t, textContent: t }));
+      this.options = (attrs.options || []).map((t) => ({
+        value: t,
+        textContent: t,
+      }));
     }
   }
   get value() {
@@ -78,7 +82,11 @@ class FakeEl {
   }
   // `type` disinkronkan ke atribut (DOM asli: el.type === atribut type)
   get type() {
-    return "type" in this._attrs ? this._attrs.type : this.tagName === "INPUT" ? "text" : undefined;
+    return "type" in this._attrs
+      ? this._attrs.type
+      : this.tagName === "INPUT"
+        ? "text"
+        : undefined;
   }
   set type(v) {
     this._attrs.type = v;
@@ -104,13 +112,16 @@ class FakeEl {
   append(...kids) {
     for (const k of kids) {
       k._parent = this;
-      k._prev = this.children.length ? this.children[this.children.length - 1] : null;
+      k._prev = this.children.length
+        ? this.children[this.children.length - 1]
+        : null;
       this.children.push(k);
     }
     return this;
   }
   remove() {
-    if (this._parent) this._parent.children = this._parent.children.filter((c) => c !== this);
+    if (this._parent)
+      this._parent.children = this._parent.children.filter((c) => c !== this);
     this._parent = null;
   }
   descendants(includeSelf = true) {
@@ -119,7 +130,9 @@ class FakeEl {
     return out;
   }
   querySelectorAll(sel) {
-    return this.descendants(true).filter((el) => sel.split(",").some((p) => matchPart(el, p.trim())));
+    return this.descendants(true).filter((el) =>
+      sel.split(",").some((p) => matchPart(el, p.trim())),
+    );
   }
   querySelector(sel) {
     return this.querySelectorAll(sel)[0] || null;
@@ -156,7 +169,9 @@ const body = new FakeEl("body");
 globalThis.document = {
   body,
   querySelectorAll(sel) {
-    return body.descendants(true).filter((el) => sel.split(",").some((p) => matchPart(el, p.trim())));
+    return body
+      .descendants(true)
+      .filter((el) => sel.split(",").some((p) => matchPart(el, p.trim())));
   },
   querySelector(sel) {
     return this.querySelectorAll(sel)[0] || null;
@@ -225,7 +240,9 @@ function mkReactSelect(id, gridLabel) {
   input.addEventListener("input", () => {
     const q = input.value.toLowerCase();
     closeBox();
-    const opts = (RS_OPTIONS[id] || []).filter((t) => t.toLowerCase().includes(q));
+    const opts = (RS_OPTIONS[id] || []).filter((t) =>
+      t.toLowerCase().includes(q),
+    );
     if (opts.length) {
       const lb = new FakeEl("div");
       lb.setAttribute("role", "listbox");
@@ -282,7 +299,10 @@ mkReactSelect("react-select-3-input", "Jenis Naskah *");
 mkReactSelect("react-select-4-input", "Sifat Naskah *");
 mkReactSelect("react-select-5-input", "Klasifikasi *");
 mkReactSelect("react-select-6-input", "Nomor Referensi");
-mkReactSelect("react-select-9-input", "Utama (Internal / Eksternal Srikandi) *");
+mkReactSelect(
+  "react-select-9-input",
+  "Utama (Internal / Eksternal Srikandi) *",
+);
 const qrSel = new FakeEl("select", { options: ["1X1", "2X2", "3X3"] });
 qrSel.setAttribute("name", "ukuran_qr");
 mkGrid("Ukuran QR Code", new FakeEl("div").append(qrSel));
@@ -297,7 +317,8 @@ radioWrap.append(radioMode);
 body.append(radioWrap);
 
 require(path.join(root, "extension/content/formfill.js"));
-const { collectFields, applyFields, collectFileInputs, setFiles } = window.SNAI.formfill;
+const { collectFields, applyFields, collectFileInputs, setFiles } =
+  window.SNAI.formfill;
 
 /* --------------------------------- test --------------------------------- */
 
@@ -324,9 +345,15 @@ await ok("collectFields membaca label sibling/MuiGrid (tanpa for)", () => {
     "utama (internal / eksternal srikandi) *",
     "ukuran qr code",
   ]) {
-    assert.ok(labels.some((l) => l.includes(want)), `label tidak ditemukan: "${want}" → ${labels.join(" | ")}`);
+    assert.ok(
+      labels.some((l) => l.includes(want)),
+      `label tidak ditemukan: "${want}" → ${labels.join(" | ")}`,
+    );
   }
-  assert.ok(f.some((x) => x.reactSelect), "react-select terdeteksi");
+  assert.ok(
+    f.some((x) => x.reactSelect),
+    "react-select terdeteksi",
+  );
   assert.strictEqual(f.filter((x) => x.reactSelect).length, 5);
   assert.ok(f.every((x) => x.label.length > 0));
 });
@@ -346,37 +373,72 @@ const ai = {
 
 const res = await applyFields(ai);
 
-await ok("applyFields mengisi 8 field (native + 5 react-select + tujuan)", () => {
-  assert.strictEqual(res.filled.length, 8, JSON.stringify(res, null, 2));
-  assert.strictEqual(res.failed.length, 0, JSON.stringify(res.failed));
-  assert.strictEqual(res.notFound.length, 0, JSON.stringify(res.notFound));
-});
+await ok(
+  "applyFields mengisi 7 field (native + 5 react-select; tujuan tidak diisi otomatis)",
+  () => {
+    assert.strictEqual(res.filled.length, 7, JSON.stringify(res, null, 2));
+    assert.strictEqual(res.failed.length, 0, JSON.stringify(res.failed));
+    assert.strictEqual(res.notFound.length, 0, JSON.stringify(res.notFound));
+    assert.ok(
+      !res.filled.some((f) => f.key === "tujuan"),
+      "tujuan tidak boleh diisi otomatis",
+    );
+  },
+);
 await ok("nilai native + event React dipicu", () => {
   assert.strictEqual(nomor.value, "005/1013/2026");
   assert.strictEqual(hal.value, "Permohonan Penggunaan Ruangan");
-  assert.strictEqual(ringkas.value, "Surat permohonan penggunaan ruang rapat lantai 3.");
-  assert.ok(nomor.events.includes("input") && nomor.events.includes("change"), nomor.events.join(","));
+  assert.strictEqual(
+    ringkas.value,
+    "Surat permohonan penggunaan ruang rapat lantai 3.",
+  );
+  assert.ok(
+    nomor.events.includes("input") && nomor.events.includes("change"),
+    nomor.events.join(","),
+  );
 });
-await ok("react-select: nilai dinormalisasi lalu mousedown opsi yang benar", () => {
-  assert.strictEqual(rsSelected["react-select-3-input"], "Surat");
-  assert.strictEqual(rsSelected["react-select-5-input"], "Terbuka");
-  assert.strictEqual(rsSelected["react-select-4-input"], "Segera");
-  assert.strictEqual(rsSelected["react-select-6-input"], "002/1001/2026");
-  assert.strictEqual(rsSelected["react-select-9-input"], "Pemerintah Kota X");
-});
+await ok(
+  "react-select: nilai dinormalisasi lalu mousedown opsi yang benar",
+  () => {
+    assert.strictEqual(rsSelected["react-select-3-input"], "Surat");
+    // gradasi (klasifikasi): HANYA ketik kode — opsi TIDAK dipilih otomatis
+    assert.strictEqual(rsSelected["react-select-5-input"], undefined);
+    assert.ok(
+      res.filled.some((f) => f.key === "gradasi"),
+      "gradasi tetap terisi (kode diketik, pilih manual)",
+    );
+    assert.strictEqual(rsSelected["react-select-4-input"], "Segera");
+    assert.strictEqual(rsSelected["react-select-6-input"], "002/1001/2026");
+  },
+);
 await ok("tanggal_naskah di-skip (tidak ada di form)", () => {
   assert.deepStrictEqual(res.skippedKeys, ["tanggal_naskah"]);
   assert.ok(!res.filled.some((f) => f.key === "tanggal_naskah"));
 });
 
 const resNoMatch = await applyFields({ gradasi: "Sangat Rahasia" });
-await ok("react-select tanpa kecocokan → tidak nebak (masuk failed)", () => {
-  assert.ok(resNoMatch.failed.some((f) => f.key === "gradasi"), JSON.stringify(resNoMatch));
-  // nilai "Terbuka" dari run sebelumnya tetap — tidak ada opsi baru yang dipilih
-  assert.strictEqual(rsSelected["react-select-5-input"], "Terbuka");
-});
+await ok(
+  "klasifikasi: hanya ketik kode — tidak memilih opsi (tidak nebak)",
+  () => {
+    // Alur klasifikasi baru: selalu "terisi" (kode diketik utk memicu fetch),
+    // tanpa pernah memilih opsi — pilihan final dilakukan manual oleh user.
+    assert.ok(
+      resNoMatch.filled.some((f) => f.key === "gradasi"),
+      JSON.stringify(resNoMatch),
+    );
+    assert.ok(
+      !resNoMatch.failed.some((f) => f.key === "gradasi"),
+      JSON.stringify(resNoMatch),
+    );
+    assert.strictEqual(rsSelected["react-select-5-input"], undefined);
+  },
+);
 
-const resNull = await applyFields({ nomor_naskah: null, pokok_surat: "  ", gradasi: "Terbuka" });
+const resNull = await applyFields({
+  nomor_naskah: null,
+  pokok_surat: "  ",
+  gradasi: "Terbuka",
+});
 await ok("nilai null/kosong dilewati", () => {
   assert.strictEqual(resNull.filled.length, 1);
   assert.strictEqual(resNull.filled[0].key, "gradasi");
@@ -412,13 +474,21 @@ console.log("service-worker.js:");
 
 await ok("extractJson: JSON polos / code fence / teks ekstra / gagal", () => {
   assert.deepStrictEqual(sw.extractJson('{"a": 1}'), { a: 1 });
-  assert.deepStrictEqual(sw.extractJson('```json\n{"b": "x"}\n```'), { b: "x" });
-  assert.deepStrictEqual(sw.extractJson('Hasil:\n{"c": [1,2]}\nSelesai.'), { c: [1, 2] });
+  assert.deepStrictEqual(sw.extractJson('```json\n{"b": "x"}\n```'), {
+    b: "x",
+  });
+  assert.deepStrictEqual(sw.extractJson('Hasil:\n{"c": [1,2]}\nSelesai.'), {
+    c: [1, 2],
+  });
   assert.strictEqual(sw.extractJson("halo dunia"), null);
   assert.strictEqual(sw.extractJson(null), null);
 });
 await ok("normalizeFields: key asing dibuang, null dipertahankan", () => {
-  const o = sw.normalizeFields({ nomor_naskah: "1", foo: "bar", prioritas: null });
+  const o = sw.normalizeFields({
+    nomor_naskah: "1",
+    foo: "bar",
+    prioritas: null,
+  });
   assert.deepStrictEqual(o, { nomor_naskah: "1", prioritas: null });
   assert.strictEqual(sw.normalizeFields("x"), null);
 });

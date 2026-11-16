@@ -55,12 +55,13 @@ srikandi-naskah-ai/
 
 ## Instalasi (Developer mode)
 
-1. Buka `chrome://extensions` → aktifkan **Developer mode**.
-2. Klik **Load unpacked** → pilih folder `extension/`.
-3. Klik ikon extension (atau kanan-klik ikon → **Options**) → provider
-   default **Kenari** sudah terisi (base URL, model, API key). Silakan
-   **Uji Koneksi AI** untuk memastikannya, atau ganti provider bila perlu.
-4. Buka halaman registrasi naskah keluar SRIKANDI — panel muncul otomatis.
+Lihat [`extension/INSTALL.md`](extension/INSTALL.md) untuk langkah lengkap
+(load unpacked, distribusi .zip, reload). Intinya:
+
+1. `chrome://extensions` → **Developer mode**
+2. **Load unpacked** → folder `extension/`
+3. Ikon extension muncul di toolbar — klik untuk toggle panel di SRIKANDI
+4. Edit kode → klik ikon ↻ untuk reload, tidak perlu build
 
 > `chrome.storage.local` menyimpan key hanya di browser Anda. Untuk
 > endpoint OpenAI-compatible selain OpenAI/Groq (mis. Ollama `localhost`),
@@ -88,19 +89,19 @@ formfill.js: label-matching → native setter + event input/change
 
 ## Field yang diekstrak AI
 
-| Key              | Deskripsi                                   |
-| ---------------- | ------------------------------------------- |
-| `tanggal_naskah` | tanggal surat (ISO `YYYY-MM-DD`) — info saja, form tidak punya field tanggal |
-| `nomor_naskah`   | nomor resmi naskah                          |
-| `nomor_referensi`| nomor surat yang dirujuk/dijawab (dropdown "Nomor Referensi") |
-| `pokok_surat`    | perihal / judul (≤ 100 kata) — field "Hal"  |
-| `jenis_naskah`   | nilai dropdown "Jenis Naskah"               |
-| `gradasi`        | nilai dropdown "Klasifikasi"                |
-| `prioritas`      | nilai dropdown "Sifat Naskah" (biasa/segera/darurat) |
-| `jumlah_lampiran`| jumlah lampiran (info)                      |
-| `lampiran`       | daftar `{nama, halaman}` (bila disebut)     |
-| `tujuan`         | daftar `{instansi, nama, jabatan}` — mengisi dropdown "Utama (Internal/Eksternal Srikandi)" |
-| `ringkasan`      | 2–4 kalimat isi naskah — field "Isi Ringkas"|
+| Key               | Deskripsi                                                                                   |
+| ----------------- | ------------------------------------------------------------------------------------------- |
+| `tanggal_naskah`  | tanggal surat (ISO `YYYY-MM-DD`) — info saja, form tidak punya field tanggal                |
+| `nomor_naskah`    | nomor resmi naskah                                                                          |
+| `nomor_referensi` | nomor surat yang dirujuk/dijawab (dropdown "Nomor Referensi")                               |
+| `pokok_surat`     | perihal / judul (≤ 100 kata) — field "Hal"                                                  |
+| `jenis_naskah`    | nilai dropdown "Jenis Naskah"                                                               |
+| `gradasi`         | nilai dropdown "Klasifikasi"                                                                |
+| `prioritas`       | nilai dropdown "Sifat Naskah" (biasa/segera/darurat)                                        |
+| `jumlah_lampiran` | jumlah lampiran (info)                                                                      |
+| `lampiran`        | daftar `{nama, halaman}` (bila disebut)                                                     |
+| `tujuan`          | daftar `{instansi, nama, jabatan}` — mengisi dropdown "Utama (Internal/Eksternal Srikandi)" |
+| `ringkasan`       | 2–4 kalimat isi naskah — field "Isi Ringkas"                                                |
 
 Field yang tak ditemukan → `null` (tidak ditebak). Dropdown form mayoritas
 **react-select** (dihandle khusus: ketik untuk memfilter → `mousedown` pada
