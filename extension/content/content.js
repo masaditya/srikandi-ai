@@ -173,7 +173,7 @@
       "button",
       {
         class: "snai-btn-ghost",
-        title: "Pengaturan (API key, dsb.)",
+        title: "Pengaturan (token aplikasi, dsb.)",
         onclick: openOptions,
       },
       "⚙️",

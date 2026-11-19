@@ -14,9 +14,12 @@ const DEFAULTS = {
     model: "claude-opus-5-5",
   },
   openai: {
-    // Preset Kenari (endpoint OpenAI-compatible) — bisa diganti di Options.
-    apiKey: "kn-9f709535c9db26a167f922c852000bb3f70a6f37843b5389",
-    baseUrl: "https://kenari.id/v1",
+    // Default: lewat proxy backend di VPS (lihat backend/README.md).
+    // Ganti host di bawah dengan domain proxy Anda, lalu "apiKey" diisi
+    // TOKEN APLIKASI dari admin proxy — bukan API key AI. Key AI yang
+    // sebenarnya hanya ada di server proxy, tidak pernah dibawa browser.
+    apiKey: "",
+    baseUrl: "https://PROXY-ANDA.example.com/v1",
     model: "deepseek-v4-1-flash",
   },
   pageMatch: "registrasi-naskah-keluar",
@@ -280,9 +283,9 @@ async function getSettings() {
   let provider = stored.provider || DEFAULTS.provider;
   const anthropic = mergeCfg(stored.anthropic, DEFAULTS.anthropic);
   const openai = mergeCfg(stored.openai, DEFAULTS.openai);
-  // Self-heal: provider tersimpan "anthropic" tanpa key, tapi preset Kenari
-  // punya key → pakai Kenari (pengguna yang sengaja pakai Anthropic pasti
-  // sudah mengisi key-nya).
+  // Self-heal: provider tersimpan "anthropic" tanpa token, tapi token
+  // aplikasi untuk OpenAI-compatible sudah diisi → pakai path itulah
+  // (pengguna yang sengaja pakai Anthropic pasti sudah mengisi token-nya).
   if (provider === "anthropic" && !anthropic.apiKey && openai.apiKey) {
     provider = "openai";
   }
@@ -302,7 +305,7 @@ async function handleAnalyze(msg) {
   const cfg = settings[settings.provider];
   if (!cfg || !cfg.apiKey) {
     throw new Error(
-      `API key belum diisi. Buka "SRIKANDI Naskah AI → Options" (klik kanan ikon extension) dan isi API key ${settings.provider === "anthropic" ? "Anthropic" : "OpenAI-compatible"}.`,
+      `Token aplikasi belum diisi. Buka "SRIKANDI Naskah AI → Options" (klik kanan ikon extension), isi Base URL proxy dan Token aplikasi.${settings.provider === "anthropic" ? " " : ""}`,
     );
   }
   const userText = buildUserMessage(
@@ -490,7 +493,7 @@ async function callOpenAIRaw(cfg, system, userText) {
 async function handleTest() {
   const settings = await getSettings();
   const cfg = settings[settings.provider];
-  if (!cfg || !cfg.apiKey) throw new Error("API key belum diisi.");
+  if (!cfg || !cfg.apiKey) throw new Error("Token aplikasi belum diisi (Options).");
   const headers =
     settings.provider === "anthropic"
       ? {

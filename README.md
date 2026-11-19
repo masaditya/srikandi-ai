@@ -25,9 +25,7 @@ Alurnya sederhana:
 - **Drag & drop multi-file** + file picker (`.pdf`, `.docx`, `.txt`, `.md`).
 - **Ekstraksi teks di browser** — dokumen tidak diunggah ke server mana pun
   selain endpoint AI yang Anda pilih.
-- **Provider AI configurable**: default **Kenari**
-  (`https://kenari.id/v1`, model `deepseek-v4-1-flash`), bisa diganti
-  Anthropic (Claude) atau endpoint OpenAI-compatible lain (Ollama, Groq, …).
+- **Provider AI via proxy backend**: request dialirkan lewat proxy di VPS Anda (`backend/`) yang menyimpan API key AI — pengguna extension hanya memegang **token aplikasi**. Bisa juga diarahkan langsung ke endpoint OpenAI-compatible (Kenari, Ollama, Groq, …) atau Anthropic dengan key sendiri.
 - **Pencocokan field berbasis label**, bukan selector kaku — tahan terhadap
   perubahan DOM SRIKANDI. Untuk field `<select>`, AI memilih opsi yang
   persis tersedia di form (opsi form dikirim sebagai konteks prompt).
@@ -45,10 +43,14 @@ srikandi-naskah-ai/
 │   ├── content/content.js      ← panel UI, drag-drop, pipeline
 │   ├── content/formfill.js     ← mesin auto-fill (label-matching)
 │   ├── content/content.css     ← style panel (di-shadow-DOM)
-│   ├── options.html / options.js      ← pengaturan (API key, model, dsb.)
+│   ├── options.html / options.js      ← pengaturan (token aplikasi proxy, model, dsb.)
 │   ├── lib/                    ← pdf.js 3.11.174 + mammoth 1.13.0 (vendored)
 │   └── icons/                  ← ikon (hasilkan ulang: scripts/generate_icons.py)
 ├── test/run-tests.mjs          ← unit test (node test/run-tests.mjs)
+├── backend/                    ← proxy tipis untuk VPS (zero-dependency)
+│   ├── server.js               ← auth token + forward ke endpoint AI
+│   ├── README.md               ← panduan deploy (Docker / systemd + Caddy)
+│   └── smoke-test.mjs          ← verifikasi proxy setelah deploy
 ├── scripts/generate_icons.py   ← generator ikon PNG (tanpa dependensi)
 └── docs/FORM-FIELDS.md         ← dokumentasi field yang diekstrak
 ```
@@ -63,10 +65,29 @@ Lihat [`extension/INSTALL.md`](extension/INSTALL.md) untuk langkah lengkap
 3. Ikon extension muncul di toolbar — klik untuk toggle panel di SRIKANDI
 4. Edit kode → klik ikon ↻ untuk reload, tidak perlu build
 
-> `chrome.storage.local` menyimpan key hanya di browser Anda. Untuk
-> endpoint OpenAI-compatible selain OpenAI/Groq (mis. Ollama `localhost`),
-> endpoint harus mengirim header CORS; tambahkan host-nya ke
-> `host_permissions` di `manifest.json` bila perlu.
+> `chrome.storage.local` menyimpan token hanya di browser Anda. API key AI
+> asli disimpan di proxy backend (`backend/README.md`) — extension hanya
+> mengirim token aplikasi. Untuk endpoint OpenAI-compatible selain
+> OpenAI/Groq (mis. Ollama `localhost`), endpoint harus mengirim header
+> CORS; tambahkan host-nya ke `host_permissions` di `manifest.json` bila
+> perlu. Setelah deploy proxy, tambahkan domain proxy ke `host_permissions`.
+
+## Backend proxy (VPS)
+
+Extension tidak membawa API key AI — request dialirkan lewat proxy tipis di
+VPS. Panduan deploy lengkap (Docker Compose + Caddy, atau systemd) ada di
+[`backend/README.md`](backend/README.md). Ringkasnya:
+
+```bash
+cd backend
+cp .env.example .env        # isi key AI BARU + APP_TOKENS
+nano Caddyfile              # ganti domain
+docker compose up -d --build
+node smoke-test.mjs https://proxy.anda.com TOKEN_APLIKASI
+```
+
+Lalu di extension: klik kanan ikon → **Options** → isi Base URL
+`https://proxy.anda.com/v1` dan token aplikasi.
 
 ## Alur data
 
@@ -77,9 +98,10 @@ File (PDF/DOCX/TXT)
 content.js ── ekstrak teks (pdf.js / mammoth, cap 20k karakter/file)
    │  chrome.runtime.sendMessage({type:"srikandi:analyze"})
    ▼
-service-worker.js ── baca chrome.storage.local (provider, key, model)
-   │  POST /v1/messages  (Anthropic, anthropic-version 2026-10-21)
-   │  atau  POST /chat/completions (OpenAI-compatible)
+service-worker.js ── baca chrome.storage.local (baseUrl proxy, token, model)
+   │  POST <proxy>/v1/chat/completions  (Bearer <token aplikasi>)
+   ▼
+proxy di VPS (backend/) ── ganti token → Bearer <key AI> ──▶ Kenari/Anthropic
    ▼
 JSON metadata ──→ panel (bisa diedit) ──→ auto-fill form (tombol untuk ulangi)
    │
@@ -113,7 +135,7 @@ label ada di [`docs/FORM-FIELDS.md`](docs/FORM-FIELDS.md).
 
 ```bash
 node test/run-tests.mjs         # unit test (formfill + parsing JSON AI)
-node test/e2e-kenari.mjs        # E2E: prompt asli → endpoint Kenari → parse
+KENARI_API_KEY=... node test/e2e-kenari.mjs   # E2E: prompt asli → endpoint → parse
 python3 scripts/generate_icons.py  # regenerate ikon bila perlu
 ```
 

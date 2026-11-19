@@ -67,10 +67,14 @@ msg += `\nDAFTAR KLASIFIKASI ARSIP (pilih kandidat kode cabang dari sini untuk k
 msg += `TEKS DOKUMEN (diperiksa dari file, bisa dipotong bila panjang):\n"""\n${DOC}\n"""\n\nBalas dengan JSON:`;
 
 const cfg = {
-  apiKey: "kn-9f709535c9db26a167f922c852000bb3f70a6f37843b5389",
-  baseUrl: "https://kenari.id/v1",
-  model: "deepseek-v4-1-flash",
+  apiKey: process.env.KENARI_API_KEY,
+  baseUrl: process.env.KENARI_BASE_URL || "https://kenari.id/v1",
+  model: process.env.KENARI_MODEL || "deepseek-v4-1-flash",
 };
+if (!cfg.apiKey) {
+  console.error("Set KENARI_API_KEY env var dulu — key tidak lagi di-hardcode di repo.");
+  process.exit(1);
+}
 
 const call = async (system, user) => {
   const res = await fetch(`${cfg.baseUrl}/chat/completions`, {

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "SRIKANDI Naskah AI",
-  "version": "0.5.2",
+  "version": "0.6.0",
   "description": "Analisis naskah (PDF/DOCX/TXT) dengan AI dan isi otomatis form Registrasi Naskah Keluar di SRIKANDI.",
   "minimum_chrome_version": "110",
   "permissions": ["storage", "activeTab"],

@@ -6,9 +6,10 @@
     provider: "openai",
     anthropic: { apiKey: "", baseUrl: "https://api.anthropic.com", model: "claude-opus-5-5" },
     openai: {
-      // Preset Kenari (endpoint OpenAI-compatible)
-      apiKey: "kn-9f709535c9db26a167f922c852000bb3f70a6f37843b5389",
-      baseUrl: "https://kenari.id/v1",
+      // Lewat proxy backend (backend/README.md): "apiKey" = token aplikasi
+      // dari admin proxy, bukan API key AI. Ganti baseUrl dengan domain proxy.
+      apiKey: "",
+      baseUrl: "https://PROXY-ANDA.example.com/v1",
       model: "deepseek-v4-1-flash",
     },
     pageMatch: "registrasi-naskah-keluar",

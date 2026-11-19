@@ -84,7 +84,7 @@
       <div id="body-anthropic" class="provider-body">
         <label for="anthropic-key">API key Anthropic</label>
         <input type="password" id="anthropic-key" placeholder="sk-ant-…" autocomplete="off" />
-        <p class="hint">Buat di <a href="https://platform.claude.com" target="_blank" rel="noopener">platform.claude.com</a> → API Keys. Kunci disimpan hanya di browser ini (chrome.storage.local).</p>
+        <p class="hint">Buat di <a href="https://platform.claude.com" target="_blank" rel="noopener">platform.claude.com</a> → API Keys. Kunci disimpan hanya di browser ini (chrome.storage.local). Lewat proxy: isi Base URL <code>https://proxy.anda.com</code> (tanpa <code>/v1</code>) dan aktifkan <code>ANTHROPIC_API_KEY</code> di proxy.</p>
         <label for="anthropic-model">Model</label>
         <input type="text" id="anthropic-model" placeholder="claude-opus-5-5" />
         <label for="anthropic-baseurl">Base URL</label>
@@ -92,13 +92,13 @@
       </div>
 
       <div id="body-openai" class="provider-body">
-        <label for="openai-key">API key</label>
-        <input type="password" id="openai-key" placeholder="kn-…" autocomplete="off" />
-        <label for="openai-baseurl">Base URL</label>
-        <input type="text" id="openai-baseurl" placeholder="https://kenari.id/v1" />
+        <label for="openai-key">Token aplikasi</label>
+        <input type="password" id="openai-key" placeholder="token dari admin proxy — bukan key AI" autocomplete="off" />
+        <label for="openai-baseurl">Base URL proxy</label>
+        <input type="text" id="openai-baseurl" placeholder="https://proxy.example.com/v1" />
         <label for="openai-model">Model</label>
         <input type="text" id="openai-model" placeholder="deepseek-v4-1-flash" />
-        <p class="hint">Default memakai <strong>Kenari</strong> (<code>https://kenari.id/v1</code>, model <code>deepseek-v4-1-flash</code>). Kompatibel dengan endpoint OpenAI chat/completions lain: Ollama (http://localhost:11434/v1), LM Studio, Groq, dsb. Endpoint harus mengizinkan CORS.</p>
+        <p class="hint">Request dialirkan lewat <strong>proxy backend</strong> Anda (lihat <code>backend/README.md</code>) yang menyimpan API key AI di server. Isi token aplikasi yang diberikan admin — <strong>bukan</strong> API key AI. Bisa juga diarahkan langsung ke endpoint OpenAI-compatible lain (Ollama <code>http://localhost:11434/v1</code>, LM Studio, Groq, dsb.) dengan key sendiri — endpoint itu harus mengizinkan CORS.</p>
       </div>
     </fieldset>
 
