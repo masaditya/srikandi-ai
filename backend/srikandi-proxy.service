@@ -1,0 +1,35 @@
+# Unit systemd — Opsi deploy tanpa Docker.
+# Langkah:
+#   1. sudo useradd -r -s /usr/sbin/nologin srikandi
+#   2. sudo mkdir -p /opt/srikandi-proxy
+#   3. sudo cp server.js package.json /opt/srikandi-proxy/
+#   4. sudo cp .env /opt/srikandi-proxy/ && sudo chown -R srikandi:srikandi /opt/srikandi-proxy
+#   5. sudo cp srikandi-proxy.service /etc/systemd/system/
+#   6. sudo systemctl daemon-reload && sudo systemctl enable --now srikandi-proxy
+#   7. sudo journalctl -u srikandi-proxy -f   # lihat log
+
+[Unit]
+Description=SRIKANDI Naskah AI proxy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=srikandi
+Group=srikandi
+WorkingDirectory=/opt/srikandi-proxy
+ExecStart=/usr/bin/node server.js
+EnvironmentFile=/opt/srikandi-proxy/.env
+Restart=on-failure
+RestartSec=3
+
+# Hardening ringan
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ReadWritePaths=
+
+[Install]
+WantedBy=multi-user.target

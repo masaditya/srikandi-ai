@@ -1,0 +1,5 @@
+# GANTI dengan domain Anda yang sudah di-A-record ke IP VPS ini.
+# Caddy otomatis menerbitkan & memperbarui sertifikat TLS.
+proxy.example.com {
+	reverse_proxy proxy:8787
+}

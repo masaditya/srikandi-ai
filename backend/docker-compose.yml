@@ -1,0 +1,28 @@
+services:
+  proxy:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Di dalam jaringan Docker harus bind 0.0.0.0 agar bisa dijangkau Caddy
+      - HOST=0.0.0.0
+    expose:
+      - "8787"
+
+  # TLS otomatis (Let's Encrypt). Ganti domain di Caddyfile dulu.
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:
