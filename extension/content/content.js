@@ -488,6 +488,7 @@
             .map((d) => String(d.sifat_naskah || "").trim()),
         placeholder: "pilih sifat (mis. Biasa / Umum)",
         strict: true,
+        defaultLabel: "Biasa / Umum",
       },
     };
     for (const def of FIELD_DEFS) {
@@ -583,6 +584,10 @@
       return;
     }
     S.fields = resp.fields;
+    // Default tanpa null: jenis & sifat naskah selalu punya nilai bawaan
+    // supaya langsung terlihat di input panel (bukan hanya saat isi form).
+    if (!S.fields.jenis_naskah) S.fields.jenis_naskah = "SURAT BIASA";
+    if (!S.fields.prioritas) S.fields.prioritas = "Biasa / Umum";
     setState("ready");
     const nonEmpty = Object.values(S.fields).filter(
       (v) => v !== null && v !== "" && (!Array.isArray(v) || v.length),
@@ -609,6 +614,10 @@
       const v = (input.value || "").trim();
       merged[key] = v === "" ? null : v;
     });
+    // Default tanpa null: jenis & sifat naskah selalu punya nilai bawaan
+    // bila hasil AI/user kosong — sesuai referensi opsi SRIKANDI.
+    if (!merged.jenis_naskah) merged.jenis_naskah = "SURAT BIASA";
+    if (!merged.prioritas) merged.prioritas = "Biasa / Umum";
 
     try {
       const res = await window.SNAI.formfill.applyFields(merged);

@@ -317,15 +317,13 @@
         }
         value = kode;
       } else if (/\bsifat\b/.test(label)) {
-        // Strict HANYA bila referensi termuat — bila tidak, isi apa adanya
         if (ref.prioritas.length) {
-          const mapped = matchRef(ref.prioritas, value);
-          if (!mapped) {
-            console.info(
-              `[SRIKANDI Naskah AI] "${value}" tidak ada di daftar sifat naskah — dilewati`,
-            );
-            return false;
-          }
+          // Tidak ada null: bila tidak cocok dengan opsi mana pun,
+          // default ke "Biasa / Umum" (opsi referensi).
+          const mapped =
+            matchRef(ref.prioritas, value) ||
+            ref.prioritas.find((l) => norm(l) === "biasa / umum") ||
+            value;
           value = mapped; // sifat: harus persis opsi
         }
       } else if (/\bjenis\b/.test(label)) {
